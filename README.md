@@ -23,7 +23,7 @@ MLflow is an open source platform for managing the end-to-end machine learning l
 
 Kedro-MLFlow is a Kedro plugin. To install it:
 ```bash
-git clone 
+git clone
 ```
 
 ```bash

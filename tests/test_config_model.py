@@ -26,6 +26,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Kedro plugin for logging to mlflow """
-
-__version__ = "0.0.1"
+"""test config types"""
