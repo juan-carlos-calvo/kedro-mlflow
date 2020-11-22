@@ -1,12 +1,11 @@
 # Kedro-MLFlow
-<!-- | `develop`                                                                                                                                                              | `master`                                                                                                                                                             |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![CircleCI](https://circleci.com/gh/quantumblacklabs/kedro-docker/tree/develop.svg?style=shield)](https://circleci.com/gh/quantumblacklabs/kedro-docker/tree/develop) | [![CircleCI](https://circleci.com/gh/quantumblacklabs/kedro-docker/tree/master.svg?style=shield)](https://circleci.com/gh/quantumblacklabs/kedro-docker/tree/master) |
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue.svg)](https://pypi.org/project/kedro-docker/)
-[![PyPI version](https://badge.fury.io/py/kedro-docker.svg)](https://pypi.org/project/kedro-docker/)
-[![Code Style: Black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/ambv/black) -->
+| Theme | Status |
+|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `main` Branch Build | [![CircleCI](https://circleci.com/gh/juan-carlos-calvo/kedro-mlflow/tree/main.svg?style=shield&circle-token=2535d520b7500278174c6e2ae36fee594231ea9b)](https://circleci.com/gh/juan-carlos-calvo/kedro-mlflow/tree/main) |
+| License | [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) |
+| Code Style | [![Code Style: Black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/ambv/black) |
+
 
 MLflow is an open source platform for managing the end-to-end machine learning lifecycle. It tackles four primary functions:
 
