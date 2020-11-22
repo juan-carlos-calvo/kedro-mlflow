@@ -27,3 +27,16 @@
 # limitations under the License.
 
 """test config types"""
+
+import pytest
+from kedro_mlflow.config_model import MLFlowLoggerConfig
+
+
+@pytest.mark.parametrize(
+    "params", [{"a": 1, "b": 3, "kedro_mlflow": {"models": {"mum": {"name": "df"}}}}]
+)
+def test_mlflow_logger_config(params):
+    """test config model"""
+    config = MLFlowLoggerConfig(**params)
+    assert config.params["b"] == 3
+    assert config.models["mum"].name == "df"
