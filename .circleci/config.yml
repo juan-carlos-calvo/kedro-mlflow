@@ -1,0 +1,153 @@
+version: 2.1
+
+orbs:
+  win: circleci/windows@2.4.0
+
+executors:
+  circleci_machine:
+    machine:
+      # Don't use 2018 image: https://discuss.circleci.com/t/24639/18
+      image: circleci/classic:201711-01
+      docker_layer_caching: true
+
+commands:
+  setup_conda:
+    description: Setup conda environment
+    steps:
+      - run:
+          name: Get rid of pyenv stuff
+          command: sudo rm -rf .pyenv/ /opt/circleci/.pyenv/
+      - run:
+          name: Download and install miniconda
+          command: |
+            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  > miniconda.sh
+            bash miniconda.sh -b -p $HOME/miniconda
+      - run:
+          name: Setup conda environment
+          command: |
+            # Create an anaconda virtualenv for python ${CONDA_ENV_PY_VERSION} and make that the default python interpreter
+            echo ". /home/circleci/miniconda/etc/profile.d/conda.sh" >> $BASH_ENV
+            echo "conda deactivate; conda activate kedro-docker" >> $BASH_ENV
+            . /home/circleci/miniconda/etc/profile.d/conda.sh
+            conda create --name kedro-docker python=${CONDA_ENV_PY_VERSION} -y
+            source $BASH_ENV
+  install_deps:
+    description: Install dependencies
+    steps:
+      - run:
+          name: Pip install dependencies
+          command: |
+            make install-pip-setuptools
+            pip install -r requirements.txt -U
+            pip install -r test_requirements.txt -U
+            pre-commit install --install-hooks
+            pre-commit install --hook-type pre-push
+      - run:
+          name: Echo package versions
+          command: |
+            python -V
+            pip -V
+            kedro -V
+  build:
+    description: Run build
+    steps:
+      - checkout
+      - setup_conda
+      - install_deps
+      - run:
+          name: Run pylint and flake8
+          command: make lint
+      - run:
+          name: Run unit tests
+          command: make test
+      - run:
+          name: Run all end to end tests
+          command: make e2e-tests
+      - run:
+          name: Check for legal compliance
+          command: make legal
+
+  # Windows-related commands
+  win_setup_conda:
+    # Miniconda3 is pre-installed on the machine:
+    # https://circleci.com/docs/2.0/hello-world-windows/
+    description: Setup conda
+    steps:
+      - run:
+          name: Initialize conda
+          command: conda init powershell
+      - run:
+          name: Create 'kedro_builder' conda environment
+          command: |
+            conda create --name kedro_builder python=$env:CONDA_ENV_PY_VERSION -y
+
+  win_setup_requirements:
+    description: Install Kedro dependencies
+    steps:
+      - run:
+          name: Install all requirements
+          command: conda activate kedro_builder; pip install -r test_requirements.txt -U
+      - run:
+          name: Pip freeze
+          command: conda activate kedro_builder; pip freeze
+
+  win_build:
+    description: Run build on Windows
+    steps:
+      - checkout
+      - win_setup_conda
+      - win_setup_requirements
+      - run:
+          # e2e tests are not currently runnable on CircleCI on Windows as
+          # those require the ability to run Linux containers:
+          # "The Windows executor currently only supports Windows containers.
+          # Running Linux containers on Windows is not possible for now"
+          # (from https://circleci.com/docs/2.0/hello-world-windows/)
+          name: Run unit tests
+          command: conda activate kedro_builder; pytest tests --no-cov
+
+jobs:
+  build_37:
+    executor: circleci_machine
+    environment:
+      CONDA_ENV_PY_VERSION: "3.7"
+    steps: [build]
+  build_38:
+    executor: circleci_machine
+    environment:
+      CONDA_ENV_PY_VERSION: "3.8"
+    steps: [build]
+
+  # Windows-related jobs
+  win_build_37:
+    executor:
+      name: win/default
+    environment:
+      CONDA_ENV_PY_VERSION: "3.7"
+    steps: [win_build]
+  win_build_38:
+    executor:
+      name: win/default
+    environment:
+      CONDA_ENV_PY_VERSION: "3.8"
+    steps: [win_build]
+
+workflows:
+  build:
+    jobs:
+      - build_37
+      - build_38
+      - win_build_37
+      - win_build_38
+  daily:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+                - master
+    jobs:
+      - build_37
+      - build_38
