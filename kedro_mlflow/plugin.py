@@ -30,33 +30,25 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import mlflow
 from kedro.framework.hooks import hook_impl
 from kedro.io import DataCatalog
 from mlflow.models.signature import infer_signature
 
-from .helpers import get_first_element
+from .config_model import MLFlowLoggerConfig
+from .log_helpers import get_first_element
 
 logger = logging.getLogger(__name__)
 
-TO_BE_LOGGED = ["params", "datasets", "models"]
-
 
 @dataclass(unsafe_hash=True)
-class MLFlowLogger:  # pylint: disable=too-many-instance-attributes
+class MLFlowLogger:
     """Kedro Hook for logging to MLFlow.
     """
 
-    to_be_logged = TO_BE_LOGGED
-    supported_models = [""]
-    enabled: bool = True
-    # artifacts_to_log: List[str] = None
-    datasets_to_log: List[str] = None
-    params_to_log: Dict[str, Any] = None
-    models_to_log: Dict[str, dict] = None
-    project_params: Dict[str, Any] = None
+    config: MLFlowLoggerConfig
     run_id: str = None
 
     @hook_impl
@@ -67,62 +59,46 @@ class MLFlowLogger:  # pylint: disable=too-many-instance-attributes
         logger.info(__package__)
 
         params = catalog.load("parameters")
-        self.set_config(params)
-        if self.enabled:
+        self.config = MLFlowLoggerConfig(**params)
+        if self.config.enabled:
             self._log_params()
 
-    def set_config(self, params):
-        """updates the logger properties according to config on `params`"""
-        spec = params.get(__package__)
-        self._set_enabled(spec)
-        if spec is not None:
-            for to_log in self.to_be_logged:
-                setattr(self, f"{to_log}_to_log", spec.get(to_log))
-        del params[__package__]
-        self.project_params = params
-
-    def _set_enabled(self, spec):
-        enabled = spec.get("enabled")
-        self.enabled = enabled if enabled is not None else self.enabled
-
     def _log_params(self):
-        if self.params_to_log is None:
-            to_log = self.project_params
-        else:
-            to_log = {
-                param: value
-                for param, value in self.project_params.items()
-                if param in self.params_to_log
-            }
         with mlflow.start_run(run_id=self.run_id) as run:
             self.run_id = run.info.run_id or self.run_id
             logger.info("Logging params")
-            mlflow.log_params(to_log)
+            mlflow.log_params(self.config.params)
 
     @hook_impl
     def after_node_run(self, inputs: Dict[str, Any], outputs: Dict[str, Any]):
         """inspects inputs and outputs and logs according to internal config.
         """
         for output in outputs:
-            if output in self.models_to_log:
-                self._log_model(output, inputs, outputs)
+            if output in self.config.models:
+                self._log_model(output, outputs, inputs)
 
-    def _log_model(self, model_name, inputs, outputs):
+    def _get_signature_and_example(self, model_name, inputs, model):
+        model_config = self.config.models[model_name]
+        if model_config.input in inputs:
+            input_example_el = get_first_element(inputs[model_config.input])
+            signature = infer_signature(
+                input_example_el, model.predict(input_example_el)
+            )
+        else:
+            input_example_el = None
+            signature = None
+        return signature, input_example_el
+
+    def _log_model(self, model_name, outputs, inputs):
+        model = outputs[model_name]
+        signature, example = self._get_signature_and_example(model_name, inputs, model)
         with mlflow.start_run(run_id=self.run_id):
-            model = outputs[model_name]
-            input_example = self.models_to_log[model_name].get("input")
-            log_name = self.models_to_log[model_name].get("name") or model_name
-            if input_example in inputs:
-                input_example_el = get_first_element(inputs[input_example])
-                signature = infer_signature(
-                    input_example_el, model.predict(input_example_el)
-                )
-            else:
-                input_example_el = None
-                signature = None
-            logger.info("logging model with input example %s", input_example)
+            logger.info("logging model with input example %s", example)
             mlflow.sklearn.log_model(
-                model, log_name, signature=signature, input_example=input_example_el
+                model,
+                self.config.models[model_name].name,
+                signature=signature,
+                input_example=example,
             )
 
 

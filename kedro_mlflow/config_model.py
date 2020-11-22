@@ -52,7 +52,7 @@ class MLFlowLoggerConfig(BaseModel):
     models: Dict[str, ModelToLog] = {}
 
     @root_validator(pre=True)
-    def parse_config(self, params):  # pylint: disable=no-self-use
+    def parse_config(cls, params):  # pylint: disable=no-self-use, no-self-argument
         """parse config to right format"""
         config = parse_params(params)
         return parse_models(config)
