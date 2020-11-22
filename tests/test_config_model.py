@@ -26,6 +26,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Kedro plugin for logging to mlflow """
+"""test config types"""
 
-__version__ = "0.0.1"
+import pytest
+from kedro_mlflow.config_model import MLFlowLoggerConfig
+
+
+@pytest.mark.parametrize(
+    "params", [{"a": 1, "b": 3, "kedro_mlflow": {"models": {"mum": {"name": "df"}}}}]
+)
+def test_mlflow_logger_config(params):
+    """test config model"""
+    config = MLFlowLoggerConfig(**params)
+    assert config.params["b"] == 3
+    assert config.models["mum"].name == "df"

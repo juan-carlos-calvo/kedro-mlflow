@@ -26,6 +26,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Kedro plugin for logging to mlflow """
+""" Utilities for various logging functions """
 
-__version__ = "0.0.1"
+from typing import Union
+
+import numpy as np
+import pandas as pd
+
+
+def get_first_element(array: Union[pd.DataFrame, np.ndarray]):
+    """Get first row from either a dataframe or a numpy array."""
+    if isinstance(array, pd.DataFrame):
+        array = array.iloc[0].values
+    return array[:1]
