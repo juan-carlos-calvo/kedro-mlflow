@@ -107,16 +107,16 @@ commands:
           command: conda activate kedro_builder; pytest tests --no-cov
 
 jobs:
-  build_37:
-    executor: circleci_machine
-    environment:
-      CONDA_ENV_PY_VERSION: "3.7"
-    steps: [build]
-  build_38:
-    executor: circleci_machine
-    environment:
-      CONDA_ENV_PY_VERSION: "3.8"
-    steps: [build]
+  # build_37:
+  #   executor: circleci_machine
+  #   environment:
+  #     CONDA_ENV_PY_VERSION: "3.7"
+  #   steps: [build]
+  # build_38:
+  #   executor: circleci_machine
+  #   environment:
+  #     CONDA_ENV_PY_VERSION: "3.8"
+  #   steps: [build]
 
   # Windows-related jobs
   win_build_37:
@@ -135,8 +135,8 @@ jobs:
 workflows:
   build:
     jobs:
-      - build_37
-      - build_38
+      # - build_37
+      # - build_38
       - win_build_37
       - win_build_38
   daily:
@@ -149,5 +149,7 @@ workflows:
                 - develop
                 - master
     jobs:
-      - build_37
-      - build_38
+      - win_build_37
+      - win_build_38
+      # - build_37
+      # - build_38
