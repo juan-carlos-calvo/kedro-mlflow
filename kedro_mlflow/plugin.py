@@ -48,7 +48,7 @@ class MLFlowLogger:
     """Kedro Hook for logging to MLFlow.
     """
 
-    config: MLFlowLoggerConfig
+    config: MLFlowLoggerConfig = None
     run_id: str = None
 
     @hook_impl
