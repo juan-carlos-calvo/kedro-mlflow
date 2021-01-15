@@ -45,16 +45,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass(unsafe_hash=True)
 class MLFlowLogger:
-    """Kedro Hook for logging to MLFlow.
-    """
+    """Kedro Hook for logging to MLFlow."""
 
     config: MLFlowLoggerConfig = None
     run_id: str = None
 
     @hook_impl
     def after_catalog_created(self, catalog: DataCatalog) -> None:
-        """gets params, initializes logger, and logs params.
-        """
+        """gets params, initializes logger, and logs params."""
         logger.info("Initializing mlflow logger")
         logger.info(__package__)
 
@@ -62,6 +60,7 @@ class MLFlowLogger:
         self.config = MLFlowLoggerConfig(**params)
         if self.config.enabled:
             self._log_params()
+            self._set_tags()
 
     def _log_params(self):
         with mlflow.start_run(run_id=self.run_id) as run:
@@ -69,13 +68,33 @@ class MLFlowLogger:
             logger.info("Logging params")
             mlflow.log_params(self.config.params)
 
+    def _set_tags(self):
+        with mlflow.start_run(run_id=self.run_id):
+            logger.info("Setting tags")
+            mlflow.set_tags(self.config.tags)
+
+    def _log_metrics(self, metric_dataset_name: str, metrics: Dict[str, Any]):
+        with mlflow.start_run(run_id=self.run_id):
+            logger.info("Logging metrics for %s", metric_dataset_name)
+            mlflow.log_metrics(metrics)
+
+    def _log_artifact(self, artifact_name: str, catalog: DataCatalog):
+        with mlflow.start_run(run_id=self.run_id):
+            logger.info("Logging artifact %s", artifact_name)
+            dataset = catalog._get_dataset(artifact_name)
+            dataset_path = str(dataset._filepath)
+            mlflow.log_artifact(dataset_path)
+
     @hook_impl
-    def after_node_run(self, inputs: Dict[str, Any], outputs: Dict[str, Any]):
-        """inspects inputs and outputs and logs according to internal config.
-        """
+    def after_node_run(self, catalog: DataCatalog, outputs: Dict[str, Any]):
+        """inspects inputs and outputs and logs according to internal config."""
         for output in outputs:
             if output in self.config.models:
                 self._log_model(output, outputs, inputs)
+            elif output in self.config.metrics:
+                self._log_metrics(output, outputs[output])
+            elif output in self.config.artifacts:
+                self._log_artifact(output, catalog)
 
     def _get_signature_and_example(self, model_name, inputs, model):
         model_config = self.config.models[model_name]
@@ -93,7 +112,7 @@ class MLFlowLogger:
         model = outputs[model_name]
         signature, example = self._get_signature_and_example(model_name, inputs, model)
         with mlflow.start_run(run_id=self.run_id):
-            logger.info("logging model with input example %s", example)
+            logger.info("logging model %s with input example %s", model_name, example)
             mlflow.sklearn.log_model(
                 model,
                 self.config.models[model_name].name,

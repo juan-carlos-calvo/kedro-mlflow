@@ -28,7 +28,7 @@
 
 """ config model and parsers """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from pydantic import (  # pylint: disable=no-name-in-module
     BaseModel,
@@ -50,6 +50,9 @@ class MLFlowLoggerConfig(BaseModel):
     enabled: bool = True
     params: Dict[str, Any]
     models: Dict[str, ModelToLog] = {}
+    metrics: List[str] = []
+    artifacts: List[str] = []
+    tags: Dict[str, Any] = {}
 
     @root_validator(pre=True)
     def parse_config(cls, params):  # pylint: disable=no-self-use, no-self-argument
