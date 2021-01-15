@@ -86,7 +86,9 @@ class MLFlowLogger:
             mlflow.log_artifact(dataset_path)
 
     @hook_impl
-    def after_node_run(self, catalog: DataCatalog, outputs: Dict[str, Any]):
+    def after_node_run(
+        self, catalog: DataCatalog, inputs: Dict[str, Any], outputs: Dict[str, Any]
+    ):
         """inspects inputs and outputs and logs according to internal config."""
         for output in outputs:
             if output in self.config.models:
